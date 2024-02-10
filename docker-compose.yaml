@@ -1,0 +1,15 @@
+services:
+  app:
+    build: .
+    image: fastapi:1.0
+    container_name: fastapi_webapp
+    command: uvicorn app.main:app --host=0.0.0.0 --port=8000
+    volumes:
+      - .:/code
+    ports:
+      - 8000:8000
+    # environment:
+    #   - HANA_CRED=${HANA_CRED}
+    #   - DWC_PYTHON_CRED=${DWC_PYTHON_CRED}
+    tty: true
+    restart: always
