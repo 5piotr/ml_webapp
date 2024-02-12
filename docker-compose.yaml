@@ -6,10 +6,31 @@ services:
     command: uvicorn app.main:app --host=0.0.0.0 --port=8000
     volumes:
       - .:/code
+      - models:/models
     ports:
       - 8000:8000
-    # environment:
-    #   - HANA_CRED=${HANA_CRED}
-    #   - DWC_PYTHON_CRED=${DWC_PYTHON_CRED}
+    environment:
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_2}
     tty: true
     restart: always
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:8.2.0
+    container_name: mysql_apt_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: apt_db
+      MYSQL_USER: piotr
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD_2}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD_2}
+    ports:
+      - 3307:3306
+    volumes:
+      - /var/lib/mysql/apt_db:/var/lib/mysql
+
+volumes:
+  models:
+    external: true
+    name: ml_pipeline_mgr_models
