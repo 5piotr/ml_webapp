@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from ..models import UserEstymations
-from ..database import SessionLocal
+from models import UserEstymations
+from database import SessionLocal
 
 router = APIRouter()
 

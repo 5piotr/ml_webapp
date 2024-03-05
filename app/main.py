@@ -1,7 +1,7 @@
 from fastapi import FastAPI
-from . import models
-from .database import engine
-from .routers import rps, apt_estimator
+import models
+from database import engine
+from routers import rps, apt_estimator
 
 app = FastAPI()
 

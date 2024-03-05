@@ -3,9 +3,9 @@ services:
     build: .
     image: fastapi:1.0
     container_name: fastapi_webapp
-    command: uvicorn app.main:app --host=0.0.0.0 --port=8000
+    command: uvicorn main:app --host=0.0.0.0 --port=8000
     volumes:
-      - .:/code
+      - ./app:/code
       - models:/models
     ports:
       - 8000:8000
