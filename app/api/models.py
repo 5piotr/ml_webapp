@@ -1,4 +1,4 @@
-from database import Base
+from api.database import Base
 from sqlalchemy import Column, Integer, DateTime, Float, String
 
 class UserEstymations(Base):

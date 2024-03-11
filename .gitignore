@@ -1,3 +1,5 @@
 .vscode/
 
+.pytest_cache
+
 db_test.sql

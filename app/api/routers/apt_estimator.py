@@ -4,8 +4,8 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from models import UserEstymations
-from database import SessionLocal
+from api.models import UserEstymations
+from api.database import SessionLocal
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ class UserEstymationsRequest(BaseModel):
     floor: int = Field(gt=-1, lt=16)
     floors: int = Field(gt=-1, lt=16)
 
-@router.post("/estimate", status_code=status.HTTP_201_CREATED)
+@router.post('/estimate', status_code=status.HTTP_201_CREATED)
 async def estimate_price(db: db_dependency, user_est_request: UserEstymationsRequest):
     est_model = UserEstymations(date=datetime.now(), ann_price=100, xgb_price=200,
                                 **user_est_request.model_dump())
