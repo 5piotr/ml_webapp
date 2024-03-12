@@ -3,7 +3,7 @@ services:
     build: .
     image: fastapi:1.0
     container_name: fastapi_webapp
-    command: uvicorn api.main:app --host=0.0.0.0 --port=8000
+    command: uvicorn api.main:app --host=0.0.0.0 --port=8000 --reload
     volumes:
       - ./app:/code
       - models:/models

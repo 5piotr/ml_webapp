@@ -1,8 +1,8 @@
-from api.database import Base
 from sqlalchemy import Column, Integer, DateTime, Float, String
+from api.database import Base
 
 class UserEstymations(Base):
-    __tablename__ = 'user_requests'
+    __tablename__ = 'apt_user_requests'
 
     id = Column(Integer, primary_key=True, index=True)
     date = Column(DateTime)
