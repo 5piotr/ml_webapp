@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path
 from starlette import status
-from api.models import UserEstymations
+from api.models import AptEstymations
 from api.database import SessionLocal
 
 import pytz
@@ -41,13 +41,19 @@ def load_from_pkl(absolute_path):
     with open(absolute_path, 'rb') as file:
         return pickle.load(file)
     
-def calculate_cluster(lat, lng):
+def get_cluster(lat, lng):
     kmeans = load_from_pkl('/models/kmeans.pkl')
     return kmeans.predict([[lat, lng]])[0]
 
+def get_ann_pred(pred_frame):
+    scaler = load_from_pkl('/models/scaler.pkl')
+    ann_model = tf.keras.models.load_model('/models/ann.keras')
+    ann_price = ann_model.predict(scaler.transform(pred_frame))[0][0]
+    return int(ann_price)
+
 def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
    
-    cluster = calculate_cluster(lat, lng)
+    cluster = get_cluster(lat, lng)
     pred_frame = load_from_pkl('/models/pred_frame.pkl')
 
     pred_frame['area'] = area
@@ -63,9 +69,7 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
     if cluster != 0:
         pred_frame['cluster_' + str(cluster)] = 1
 
-    scaler = load_from_pkl('/models/scaler.pkl')
-    ann_model = tf.keras.models.load_model('/models/ann.keras')
-    ann_price = ann_model.predict(scaler.transform(pred_frame))[0][0]
+    ann_price = get_ann_pred(pred_frame)
 
     return ann_price, -1
 
@@ -74,10 +78,9 @@ async def estimate_price(db: db_dependency, user_est_request: UserEstymationsReq
 
     ann_price, xgb_price = get_apt_prices(**user_est_request.model_dump())
 
-    print(ann_price, xgb_price)
+    est_model = AptEstymations(date=get_current_timestamp(),
+                               ann_price=ann_price, xgb_price=200.1,
+                               **user_est_request.model_dump())
 
-    est_model = UserEstymations(date=get_current_timestamp(), ann_price=ann_price, xgb_price=200.1,
-                                **user_est_request.model_dump())
-    
     db.add(est_model)
     db.commit()
