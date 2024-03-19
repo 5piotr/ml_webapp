@@ -2,7 +2,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from starlette import status
 from api.models import AptEstymations
 from api.database import SessionLocal
@@ -10,6 +10,7 @@ from api.database import SessionLocal
 import pytz
 import pickle
 import tensorflow as tf
+from xgboost import XGBRegressor
 
 router = APIRouter()
 
@@ -22,7 +23,7 @@ def get_db():
 
 db_dependency = Annotated[Session, Depends(get_db)]
 
-class UserEstymationsRequest(BaseModel):
+class AptEstymationsRequest(BaseModel):
     lat: float = Field(gt=48, lt=55)
     lng: float = Field(gt=14, lt=25)
     market: Literal['primary_market', 'aftermarket']
@@ -49,7 +50,15 @@ def get_ann_pred(pred_frame):
     scaler = load_from_pkl('/models/scaler.pkl')
     ann_model = tf.keras.models.load_model('/models/ann.keras')
     ann_price = ann_model.predict(scaler.transform(pred_frame))[0][0]
-    return int(ann_price)
+    ann_price_m = ann_price/pred_frame.area.iloc[0]
+    return round(ann_price), round(ann_price_m)
+
+def get_xgb_price(pred_frame):
+    xgb_model = XGBRegressor()
+    xgb_model.load_model('/models/xgb.json')
+    xgb_price = xgb_model.predict(pred_frame)[0]
+    xgb_price_m = xgb_price/pred_frame.area.iloc[0]
+    return round(xgb_price), round(xgb_price_m)
 
 def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
    
@@ -69,18 +78,27 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
     if cluster != 0:
         pred_frame['cluster_' + str(cluster)] = 1
 
-    ann_price = get_ann_pred(pred_frame)
+    ann_price, ann_price_m = get_ann_pred(pred_frame)
+    xgb_price, xgb_price_m = get_xgb_price(pred_frame)
 
-    return ann_price, -1
+    return ann_price, ann_price_m, xgb_price, xgb_price_m
 
 @router.post('/estimate', status_code=status.HTTP_201_CREATED)
-async def estimate_price(db: db_dependency, user_est_request: UserEstymationsRequest):
+async def estimate_price(db: db_dependency, user_est_request: AptEstymationsRequest,
+                         request: Request):
 
-    ann_price, xgb_price = get_apt_prices(**user_est_request.model_dump())
+    ann_price, ann_price_m, xgb_price, xgb_price_m = \
+        get_apt_prices(**user_est_request.model_dump())
 
     est_model = AptEstymations(date=get_current_timestamp(),
-                               ann_price=ann_price, xgb_price=200.1,
+                               ann_price=ann_price, ann_price_m=ann_price_m,
+                               xgb_price=xgb_price, xgb_price_m=xgb_price_m,
                                **user_est_request.model_dump())
 
     db.add(est_model)
     db.commit()
+
+    print(request.client.host)
+
+    return {'ann_price': ann_price, 'ann_price_m': ann_price_m,
+            'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m}

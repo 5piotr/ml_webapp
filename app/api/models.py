@@ -15,4 +15,6 @@ class AptEstymations(Base):
     floor = Column(Integer)
     floors = Column(Integer)
     ann_price = Column(Integer)
+    ann_price_m = Column(Integer)
     xgb_price = Column(Integer)
+    xgb_price_m = Column(Integer)
