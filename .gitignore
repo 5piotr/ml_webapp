@@ -3,3 +3,5 @@
 .pytest_cache
 
 db_test.sql
+
+api_test.py

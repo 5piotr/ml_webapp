@@ -3,6 +3,8 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from sqlalchemy.orm import Session
 from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 from starlette import status
 from api.models import AptEstymations
 from api.database import SessionLocal
@@ -12,7 +14,12 @@ import pickle
 import tensorflow as tf
 from xgboost import XGBRegressor
 
-router = APIRouter()
+router = APIRouter(
+    prefix='/apartment_price_estimator',
+    tags=['apartment price estimator']
+)
+
+templates = Jinja2Templates(directory='api/templates')
 
 def get_db():
     db = SessionLocal()
@@ -33,6 +40,23 @@ class AptEstymationsRequest(BaseModel):
     floor: int = Field(gt=-1, lt=16)
     floors: int = Field(gt=-1, lt=16)
 
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    'lat': 51.757193,
+                    'lng': 19.451020,
+                    'market': 'aftermarket',
+                    'build_year': 2019,
+                    'area': 55,
+                    'rooms': 3,
+                    'floor': 2,
+                    'floors': 7
+                }
+            ]
+        }
+    }    
+
 def get_current_timestamp():
     warsaw_tz = pytz.timezone('Europe/Warsaw') 
     timestamp = datetime.now(warsaw_tz).strftime('%Y-%m-%d_%H:%M:%S')
@@ -50,15 +74,15 @@ def get_ann_pred(pred_frame):
     scaler = load_from_pkl('/models/scaler.pkl')
     ann_model = tf.keras.models.load_model('/models/ann.keras')
     ann_price = ann_model.predict(scaler.transform(pred_frame))[0][0]
-    ann_price_m = ann_price/pred_frame.area.iloc[0]
-    return round(ann_price), round(ann_price_m)
+    ann_price_m2 = ann_price/pred_frame.area.iloc[0]
+    return round(ann_price), round(ann_price_m2)
 
 def get_xgb_price(pred_frame):
     xgb_model = XGBRegressor()
     xgb_model.load_model('/models/xgb.json')
     xgb_price = xgb_model.predict(pred_frame)[0]
-    xgb_price_m = xgb_price/pred_frame.area.iloc[0]
-    return round(xgb_price), round(xgb_price_m)
+    xgb_price_m2 = xgb_price/pred_frame.area.iloc[0]
+    return round(xgb_price), round(xgb_price_m2)
 
 def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
    
@@ -78,27 +102,31 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
     if cluster != 0:
         pred_frame['cluster_' + str(cluster)] = 1
 
-    ann_price, ann_price_m = get_ann_pred(pred_frame)
-    xgb_price, xgb_price_m = get_xgb_price(pred_frame)
+    ann_price, ann_price_m2 = get_ann_pred(pred_frame)
+    xgb_price, xgb_price_m2 = get_xgb_price(pred_frame)
 
-    return ann_price, ann_price_m, xgb_price, xgb_price_m
+    return ann_price, ann_price_m2, xgb_price, xgb_price_m2
 
-@router.post('/estimate', status_code=status.HTTP_201_CREATED)
-async def estimate_price(db: db_dependency, user_est_request: AptEstymationsRequest,
+@router.post('/api', status_code=status.HTTP_201_CREATED)
+async def estimate_price(db: db_dependency, apt_est_request: AptEstymationsRequest,
                          request: Request):
 
-    ann_price, ann_price_m, xgb_price, xgb_price_m = \
-        get_apt_prices(**user_est_request.model_dump())
+    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+        get_apt_prices(**apt_est_request.model_dump())
 
     est_model = AptEstymations(date=get_current_timestamp(),
-                               ann_price=ann_price, ann_price_m=ann_price_m,
-                               xgb_price=xgb_price, xgb_price_m=xgb_price_m,
-                               **user_est_request.model_dump())
+                               ann_price=ann_price, ann_price_m2=ann_price_m2,
+                               xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                               source='api', ip_address=request.client.host,
+                               **apt_est_request.model_dump())
 
     db.add(est_model)
     db.commit()
 
-    print(request.client.host)
+    return {'ann_price': ann_price, 'ann_price_m': ann_price_m2,
+            'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
+            'currency': 'PLN'}
 
-    return {'ann_price': ann_price, 'ann_price_m': ann_price_m,
-            'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m}
+@router.get('/', response_class=HTMLResponse)
+async def test(request: Request):
+    return templates.TemplateResponse('test.html', {'request': request})
