@@ -1,0 +1,42 @@
+body {
+  background-color: white;
+}
+
+.my_container_1 {
+  background-color: #caf0f8;
+  border-radius: 10px;
+}
+
+.my_jumbotron {
+  background-color: #caf0f8;
+}
+
+.navbar {
+  background-color: #0096c7;
+  border-radius: 5px;
+}
+
+.dropdown-menu {
+  background-color: #0096c7;
+}
+
+.dropdown-item {
+  color: white;
+}
+
+.my_h4 {
+  padding: 2rem 0rem 0rem 0rem;
+}
+
+.my_p {
+  padding: 1rem 0rem 1rem 0rem;
+}
+
+#map {
+    width: 100%;
+    height: 480px;
+}
+
+#mapid {
+  height: 20rem;
+}

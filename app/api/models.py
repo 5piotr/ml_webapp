@@ -10,7 +10,7 @@ class AptEstymations(Base):
     lng = Column(Numeric(precision=9, scale=6))
     market = Column(String(14))
     build_year = Column(Integer)
-    area = Column(Numeric(precision=16, scale=2))
+    area = Column(Integer)
     rooms = Column(Integer)
     floor = Column(Integer)
     floors = Column(Integer)

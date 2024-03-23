@@ -7,4 +7,4 @@ router = APIRouter(
 
 @router.get('/estimate')
 async def get_rps_pred():
-    return {'rps_pred': 'rock'}
+    return {'app stataus': 'currently not working'}

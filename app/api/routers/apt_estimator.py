@@ -2,10 +2,11 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
 from sqlalchemy.orm import Session
-from fastapi import APIRouter, Depends, HTTPException, Path, Request
+from fastapi import APIRouter, Depends, Query, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette import status
+from starlette.responses import RedirectResponse
 from api.models import AptEstymations
 from api.database import SessionLocal
 
@@ -33,9 +34,9 @@ db_dependency = Annotated[Session, Depends(get_db)]
 class AptEstymationsRequest(BaseModel):
     lat: float = Field(gt=48, lt=55)
     lng: float = Field(gt=14, lt=25)
-    market: Literal['primary_market', 'aftermarket']
+    market: Literal['primary', 'aftermarket']
     build_year: int = Field(gt=1899, lt=2025)
-    area: float = Field(gt=0, lt=999)
+    area: int = Field(gt=0, lt=999)
     rooms: int = Field(gt=0, lt=7)
     floor: int = Field(gt=-1, lt=16)
     floors: int = Field(gt=-1, lt=16)
@@ -65,6 +66,10 @@ def get_current_timestamp():
 def load_from_pkl(absolute_path):
     with open(absolute_path, 'rb') as file:
         return pickle.load(file)
+
+def load_from_txt(absolute_path):
+    with open(absolute_path, 'r') as file:
+        return file.readline()
     
 def get_cluster(lat, lng):
     kmeans = load_from_pkl('/models/kmeans.pkl')
@@ -91,7 +96,7 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
 
     pred_frame['area'] = area
     pred_frame['build_yr'] = build_year
-    if market == 'primary_market':
+    if market == 'primary':
         pred_frame['market_primary_market'] = 1
     if rooms != 1:
         pred_frame['rooms_' + str(rooms)] = 1
@@ -127,6 +132,73 @@ async def estimate_price(db: db_dependency, apt_est_request: AptEstymationsReque
             'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
             'currency': 'PLN'}
 
-@router.get('/', response_class=HTMLResponse)
-async def test(request: Request):
-    return templates.TemplateResponse('test.html', {'request': request})
+@router.get('/api', status_code=status.HTTP_201_CREATED)
+async def estimate_price(db: db_dependency,
+                         request: Request,
+                         lat: float = Query(gt=48, lt=55, default=51.757193),
+                         lng: float = Query(gt=14, lt=25, default=19.451020),
+                         market: Literal['primary', 'aftermarket'] = Query(),
+                         build_year: int = Query(gt=1899, lt=2025, default=2019),
+                         area: int = Query(gt=0, lt=999, default=55),
+                         rooms: int = Query(gt=0, lt=7, default=3),
+                         floor: int = Query(gt=-1, lt=16, default=2),
+                         floors: int = Query(gt=-1, lt=16, default=7)):
+
+    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+        get_apt_prices(lat, lng, market, build_year, area,
+                       rooms, floor, floors)
+
+    est_model = AptEstymations(date=get_current_timestamp(),
+                               ann_price=ann_price, ann_price_m2=ann_price_m2,
+                               xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                               source='api', ip_address=request.client.host,
+                               lat=lat, lng=lng, market=market,
+                               build_year=build_year, area=area,
+                               rooms=rooms, floor=floor, floors=floors)
+
+    db.add(est_model)
+    db.commit()
+
+    return {'ann_price': ann_price, 'ann_price_m': ann_price_m2,
+            'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
+            'currency': 'PLN'}
+
+@router.get('/', response_class=HTMLResponse, include_in_schema=False)
+async def price_estimator(request: Request):
+    update_date = load_from_txt('/models/update.date')
+    update_date = update_date.replace('_', ' ')
+    return templates.TemplateResponse('apartment_price_estimator.html',
+                                      {'request': request,
+                                       'update_date': update_date})
+
+@router.post('/', response_class=HTMLResponse, include_in_schema=False)
+async def price_estimator(db: db_dependency, request: Request,
+                          lat: float = Form(gt=48, lt=55, default=51.757193),
+                          lng: float = Form(gt=14, lt=25, default=19.451020),
+                          market: Literal['primary', 'aftermarket'] = Form(),
+                          build: int = Form(gt=1899, lt=2025, default=2019),
+                          area: int = Form(gt=0, lt=999, default=55),
+                          rooms: int = Form(gt=0, lt=7, default=3),
+                          floor: int = Form(gt=-1, lt=16, default=2),
+                          floors: int = Form(gt=-1, lt=16, default=7)):
+
+    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+        get_apt_prices(lat, lng, market, build, area, rooms, floor, floors)
+
+    est_model = AptEstymations(date=get_current_timestamp(),
+                               lat=lat, lng=lng, market=market,
+                               build_year=build, area=area, rooms=rooms,
+                               floor=floor, floors=floors,
+                               ann_price=ann_price, ann_price_m2=ann_price_m2,
+                               xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                               source='www', ip_address=request.client.host)
+
+    db.add(est_model)
+    db.commit()
+
+    # return RedirectResponse(url='/apartment_price_estimator',
+    #                         status_code=status.HTTP_302_FOUND)
+
+    return templates.TemplateResponse('apartment_price_estimator.html',
+                                      {'request': request,
+                                       'est_model': est_model})

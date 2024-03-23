@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}
+<title>Apartment Price Estimator</title>
+<meta name="title" property="og:title" content="Apartment Price Estimator">
+<meta name="image" property="og:image" content="/static/images/apartment.png">
+<meta name="description" property="og:description" content="This application is using neural network and random forest models
+to estimate the price of a given apartment.">
+{% endblock %}
+
+{% block body_block %}
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+  crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+  integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+  crossorigin="">
+</script>
+
+
+
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-6" style='margin: 3rem auto;'>
+      <h4>Apartment price estimator</h4>
+      <small  class="form-text text-muted">Prediction models updated on {{update_date}}</small>
+      <br>
+      {% if est_model %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+          <strong>Selected parameters:</strong><br>
+          Latitude: {{est_model.lat}}<br>
+          Longitude: {{est_model.lng}}<br>
+          Market type: {{est_model.market}}<br>
+          Built year: {{est_model.build_year}}<br>
+          Area: {{est_model.area}}m<sup>2</sup><br>
+          Total number of rooms: {{est_model.rooms}}<br>
+          Floor: {{est_model.floor}}<br>
+          Total number of floors: {{est_model.floors}}<br>
+          <br>
+          Appartment price according to the neural network estimator:<br>
+          <strong>
+          {{est_model.ann_price}} PLN<br>
+          {{est_model.ann_price_m2}} PLN/m<sup>2</sup><br>
+          </strong>
+          <br>
+          Appartment price according to the xgb estimator:<br>
+          <strong>
+          {{est_model.xgb_price}} PLN<br>
+          {{est_model.xgb_price_m2}} PLN/m<sup>2</sup><br><br>
+          </strong>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+          <a href="#" class="btn btn-info btn-sm" role="button" style='margin: 1rem 0;'>
+            Click here for more details about the models and current state of the apartment market
+          </a>
+        </div>
+      {% elif pred_ann == 'Error' %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          <strong>{{ e }}</strong>
+          <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+      {% endif %}
+      <br>
+
+        <form id="form" method="post" class="needs-validation" novalidate>
+          {# csrf_token #}
+          <div class="form-group">
+            <label>Please select the exact apartment location and its parameters:</label>
+            <br><br>
+            <div id='mapid'></div>
+            <br>
+            {# row 1 #}
+            <div class="row">
+              <label for="lat" class="col-lg-1 col-form-label">lat:</label>
+              <div class="col-lg-5">
+                <input id="lat" class="form-control" type="text" value="click on the map" name="lat" required pattern="^-?\d+(\.\d+)?$">
+                <div class="invalid-feedback">
+                  Please select from the map.
+                </div>
+              </div>
+              <label for="lng" class="col-lg-1 col-form-label">lng:</label>
+              <div class="col-lg-5">
+                <input id="lng" class="form-control" type="text" value="click on the map" name="lng" required pattern="^-?\d+(\.\d+)?$">
+                <div class="invalid-feedback">
+                  Please select from the map.
+                </div>
+              </div>
+            </div>
+            <br>
+            {# row 2 #}
+            <div class="row">
+              <label for="market" class="col-lg-3 col-form-label">market:</label>
+              <div class="col-lg-3">
+                <select id='market' class="custom-select" name="market" required>
+                  <option selected disabled value=""></option>
+                  <option>primary</option>
+                  <option>aftermarket</option>
+                </select>
+              </div>
+              <label for="built" class="col-lg-3 col-form-label">built year:</label>
+              <div class="col-lg-3">
+                <select id='build' class="custom-select" name="build" required>
+                  <option selected disabled value=""></option>
+                  {% for year in range(1900, 2025) %}
+                    <option>{{ year }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <br>
+            {# row 3 #}
+            <div class="row">
+              <label for="area" class="col-lg-3 col-form-label">area in m<sup>2</sup>:</label>
+              <div class="col-lg-3">
+                <input id="area" class="form-control" type="text" value="" name="area" required pattern="^\d*" inputmode="numeric">
+                <div class="invalid-feedback">
+                  Please insert positive whole number.
+                </div>
+              </div>
+              <label for="rooms" class="col-lg-3 col-form-label">rooms:</label>
+              <div class="col-lg-3">
+                <select id='rooms' class="custom-select" name="rooms" required>
+                  <option selected disabled value=""></option>
+                  {% for number in range(1, 7) %}
+                    <option>{{ number }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <br>
+            {# row 4 #}
+            <div class="row">
+              <label for="floor" class="col-lg-3 col-form-label">floor:</label>
+              <div class="col-lg-3">
+                <select id='floor' class="custom-select" name="floor" required>
+                  <option selected disabled value=""></option>
+                  {% for number in range(0, 16) %}
+                    <option>{{ number }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <label for="floors" class="col-lg-3 col-form-label">total floors:</label>
+              <div class="col-lg-3">
+                <select id='floors' class="custom-select" name="floors" required>
+                  <option selected disabled value=""></option>
+                  {% for number in range(0, 16) %}
+                    <option>{{ number }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-lg-3" style='margin: 2rem 2rem 0 0;'>
+                <a class="" href="/privacy_policy"><b>Privacy</b></a>
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-success">Upload</button>
+          <div class='row'>
+            <div class="col-md-3" style='margin: 1rem auto;'>
+              <div id='spinner'></div>
+            </div>
+          </div>
+        </form>
+
+    </div>
+  </div>
+</div>
+
+<script src="/static/js/apartment_price_estimator.js"></script>
+{% endblock %}

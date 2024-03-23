@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}
+<title>Hey!</title>
+<meta name="title" property="og:title" content="Hey!">
+<meta name="image" property="og:image" content="static/images/light_bulbs.png">
+<meta name="description" property="og:description" content="I have an idea...">
+{% endblock %}
+
+{% block body_block %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-8" style='margin: 0 auto;'>
+
+      <div class="card" style='margin: 1rem 0rem;'>
+        <div class="row no-gutters">
+          <div class="col-md-6 align-self-center">
+            <img src="static/images/apartment.png" class="card-img" alt="***missing_image***">
+          </div>
+          <div class="col-md-6">
+            <div class="card-body">
+              <h5 class="card-title">Apartment Price Estimator</h5>
+              <p class="card-text">This application is using neural network and random forest models
+              to estimate the price of a given apartment.</p>
+              <a href="apartment_price_estimator" class="btn btn-info">Go to app</a>
+              <a href="#" class="btn btn-info">App details</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style='margin: 1rem 0rem;'>
+        <div class="row no-gutters">
+          <div class="col-md-6 align-self-center">
+            <img src="static/images/rock-paper-scissors_2.png" class="card-img" alt="***missing_image***">
+          </div>
+          <div class="col-md-6">
+            <div class="card-body">
+              <h5 class="card-title">Simple Gesture Recognition</h5>
+              <p class="card-text">This application is using convolutional neural network model
+              to classify images of the Rock Paper Scissors game calls.</p>
+              <a href="#" class="btn btn-info">Go to app</a>
+              <a href="#" class="btn btn-info">App details</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+{% endblock %}
