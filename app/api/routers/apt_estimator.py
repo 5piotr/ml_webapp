@@ -1,3 +1,4 @@
+import time
 from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -196,9 +197,11 @@ async def price_estimator(db: db_dependency, request: Request,
     db.add(est_model)
     db.commit()
 
-    # return RedirectResponse(url='/apartment_price_estimator',
-    #                         status_code=status.HTTP_302_FOUND)
+    update_date = load_from_txt('/models/update.date')
+    update_date = update_date.replace('_', ' ')
 
+    time.sleep(5)
     return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,
-                                       'est_model': est_model})
+                                       'est_model': est_model,
+                                       'update_date': update_date})

@@ -1,8 +1,8 @@
 // creating map
 var mymap = L.map('mapid').setView([52.06883124080639, 19.479736645844262], 5);
 
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+L.tileLayer('https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
   maxZoom: 18,
   tileSize: 256,
   zoomOffset: 0,
@@ -16,10 +16,12 @@ function onMapClick(e) {
         .setLatLng(e.latlng)
         // .setContent("You clicked the map at " + e.latlng.toString())
         .addTo(mymap);
-    $('#lat')
-        .val(e.latlng.lat.toString())
-    $('#lng')
-        .val(e.latlng.lng.toString())
+
+    var roundedLat = e.latlng.lat.toFixed(6);
+    var roundedLng = e.latlng.lng.toFixed(6);
+    
+    $('#lat').val(roundedLat);
+    $('#lng').val(roundedLng);
 }
 
 mymap.on('click', onMapClick);

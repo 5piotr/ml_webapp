@@ -1,23 +1,23 @@
 body {
-  background-color: white;
+  background-color: black;
 }
 
 .my_container_1 {
-  background-color: #caf0f8;
+  background-color: #4a4e69;
   border-radius: 10px;
 }
 
 .my_jumbotron {
-  background-color: #caf0f8;
+  background-color: #4a4e69;
 }
 
 .navbar {
-  background-color: #0096c7;
+  background-color: #22223b;
   border-radius: 5px;
 }
 
 .dropdown-menu {
-  background-color: #0096c7;
+  background-color: #22223b;
 }
 
 .dropdown-item {
@@ -33,8 +33,8 @@ body {
 }
 
 #map {
-    width: 100%;
-    height: 480px;
+  width: 100%;
+  height: 480px;
 }
 
 #mapid {
