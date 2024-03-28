@@ -72,6 +72,10 @@ def load_from_txt(absolute_path):
     with open(absolute_path, 'r') as file:
         return file.readline()
     
+def get_update_date(absolute_path):
+    update_date = load_from_txt(absolute_path)
+    return update_date.replace('_', ' ')
+    
 def get_cluster(lat, lng):
     kmeans = load_from_pkl('/models/kmeans.pkl')
     return kmeans.predict([[lat, lng]])[0]
@@ -166,39 +170,63 @@ async def estimate_price(db: db_dependency,
 
 @router.get('/', response_class=HTMLResponse, include_in_schema=False)
 async def price_estimator(request: Request):
-    update_date = load_from_txt('/models/update.date')
-    update_date = update_date.replace('_', ' ')
+    update_date = get_update_date('/models/update.date')
     return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,
                                        'update_date': update_date})
 
 @router.post('/', response_class=HTMLResponse, include_in_schema=False)
 async def price_estimator(db: db_dependency, request: Request,
-                          lat: float = Form(gt=48, lt=55, default=51.757193),
-                          lng: float = Form(gt=14, lt=25, default=19.451020),
-                          market: Literal['primary', 'aftermarket'] = Form(),
-                          build: int = Form(gt=1899, lt=2025, default=2019),
-                          area: int = Form(gt=0, lt=999, default=55),
-                          rooms: int = Form(gt=0, lt=7, default=3),
-                          floor: int = Form(gt=-1, lt=16, default=2),
-                          floors: int = Form(gt=-1, lt=16, default=7)):
+                          lat: float = Form(),
+                          lng: float = Form(),
+                          market: str = Form(),
+                          build: int = Form(),
+                          area: int = Form(),
+                          rooms: int = Form(),
+                          floor: int = Form(),
+                          floors: int = Form()):
+    
+    update_date = get_update_date('/models/update.date')
+    
+    error_message = ''
 
-    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
-        get_apt_prices(lat, lng, market, build, area, rooms, floor, floors)
+    if lat < 49 or lat > 55 or lng < 14 or lng > 25:
+        error_message += 'Please select location in Poland. '
+            
+    if floor > floors:
+        error_message += '''Floor number should not be greater than 
+        total number of floors. '''
 
-    est_model = AptEstymations(date=get_current_timestamp(),
-                               lat=lat, lng=lng, market=market,
-                               build_year=build, area=area, rooms=rooms,
-                               floor=floor, floors=floors,
-                               ann_price=ann_price, ann_price_m2=ann_price_m2,
-                               xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
-                               source='www', ip_address=request.client.host)
+    if area > 1000:
+        error_message += 'The area is too big. '
 
-    db.add(est_model)
-    db.commit()
+    if error_message != '':
+        return templates.TemplateResponse('apartment_price_estimator.html',
+                                      {'request': request,
+                                       'error_message': error_message,
+                                       'update_date': update_date})
+    
+    try:
+        ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+            get_apt_prices(lat, lng, market, build, area, rooms, floor, floors)
 
-    update_date = load_from_txt('/models/update.date')
-    update_date = update_date.replace('_', ' ')
+        est_model = AptEstymations(date=get_current_timestamp(),
+                                lat=lat, lng=lng, market=market,
+                                build_year=build, area=area, rooms=rooms,
+                                floor=floor, floors=floors,
+                                ann_price=ann_price, ann_price_m2=ann_price_m2,
+                                xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                                source='www', ip_address=request.client.host)
+
+        db.add(est_model)
+        db.commit()
+
+    except:
+        error_message = 'Something went wrong :('
+        return templates.TemplateResponse('apartment_price_estimator.html',
+                                      {'request': request,
+                                       'error_message': error_message,
+                                       'update_date': update_date})
 
     time.sleep(5)
     return templates.TemplateResponse('apartment_price_estimator.html',

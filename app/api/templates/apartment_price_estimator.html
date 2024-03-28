@@ -54,9 +54,9 @@ to estimate the price of a given apartment.">
             Click here for more details about the models and current state of the apartment market
           </a>
         </div>
-      {% elif pred_ann == 'Error' %}
+      {% elif error_message %}
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <strong>{{ e }}</strong>
+          <strong>{{ error_message }}</strong>
           <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
       {% endif %}
