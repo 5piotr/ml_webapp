@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}
+<title>Apartment Estimator Details</title>
+{% endblock %}
+
+{% block body_block %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-8" style='margin: 0 auto;'>
+      <h4 class="my_h4">The Estimator</h4>
+      <p class="my_p">
+        This is an estimator designed to predict apartment prices on the Polish real estate market.
+        It is outputting 2 prices. One comes from the XGB model and the other from the artificial neural network.
+        Below you can find information about its creation and evaluation.
+      </p>
+      <h4 class="my_h4">Web scraping</h4>
+      <p class="my_p">
+        Data required for training the models are being acquired via web scraping from a Polish auction portal.
+        Automatic data acquisition is not prohibited by portals' terms of use. The procedure does not interfere
+        with its functioning. The result is a set of observations with 14 parameters:
+        <ul>
+          <li>city - city in which the apartment is located</li>
+          <li>district - city district</li>
+          <li>voivodeship - Polish administration region</li>
+          <li>localization_y - geographic location: latitude</li>
+          <li>localization_x - geographic location: longitude</li>
+          <li>market - primary market, aftermarket</li>
+          <li>offer_type - sell (safety check)</li>
+          <li>area - total area of the apartment</li>
+          <li>rooms - total number of rooms in the apartment</li>
+          <li>floor - floor on which the apartment is located</li>
+          <li>floors - total number of floors in the building</li>
+          <li>build_yr - year in which the apartment was built</li>
+          <li>price - price of the apartment in PLN</li>
+          <li>url - address of the website with the advertisement</li>
+        </ul>
+      </p>
+      <h4 class="my_h4">Data preparation</h4>
+      <p class="my_p">
+        About 50% of observations are not suitable for training. They are missing significant information that is highly impacting the final price.
+        ~18% of data has no price to begin with. The remaining ~30% have no built year and ~5% are missing the information about the floors.
+        The rest of the data is fairly complete, only 1-3% values per variable are missing.<br>
+        The categorical data are being checked for consistency. Only information about the floors needs processing. In border cases,
+        they are descriptive instead of numerical. <br>
+        Information about the price per m<sup>2</sup> is being added for further preprocessing and analysis. <br>
+        Data below 1<sup>st</sup> percentile and above 99<sup>th</sup> percentile for variables: "area", "price", "price_of_sqm"
+        are being considered outliers. The same is true for "build_yr" lower than 1900. Some outliers are also present in latitude and longitude.
+        Points that they are describing are outside the Polish border despite clearly Polish administration information.
+        In some rare cases, the values of the coordinates are numbers with no decimal places,
+        which suggests some kind of algorithmic assignment not in line with the actual location.<br>
+        Data don't need to be corrected for skew and kurtosis.
+      </p>
+      <h4 class="my_h4">K-means clustering</h4>
+      <p class="my_p">
+        The best practice is to train the model on geolocation data organized into bins. Otherwise, the model will struggle to find patterns
+        in a two-dimensional continuous plane with many local extremes. The final price is driven by the coordinate values, but not in a proportional
+        manner. <br>
+        There are two ways to approach this issue. The first one is to use city/district values. They are naturally organizing
+        the data into bins. However, it is getting problematic to assign new points to those bins. It requires address analysis and
+        validation. Also, it is very likely that the model is not training on all possible locations. It will not be able to predict output for
+        locations that it hasn't seen before.<br>
+        The second way is to use latitude and longitude values to create virtual bins. Covering the area by grid with predefined resolution
+        will make it easy to group the existing data points and also to put any given point into an already existing bin.
+      </p>
+      <figure class="figure">
+        <img src="/static/images/apt/grid_bins.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+        <figcaption class="figure-caption">Apartmen map covered by 25x25 grid.</figcaption>
+      </figure>
+      <p class="my_p">
+        This method is simple but unfortunately not efficient. It is visible after zooming the map.
+      </p>
+      <figure class="figure">
+        <img src="/static/images/apt/grid_bins_warsaw.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+        <figcaption class="figure-caption">Apartmen map of Warsaw covered by grid.</figcaption>
+      </figure>
+      <p class="my_p">
+        625 bins grid is not enough to reflect the complexity of apartment price structure on the city level.
+        There are also bins that are completely empty, with no points to train the model. To correctly group the data, at least
+        x10 higher resolution is required.
+      </p>
+      <figure class="figure">
+        <img src="/static/images/apt/grid_bins_warsaw2.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+        <figcaption class="figure-caption">Apartment map of Warsaw covered by x10 denser grid than the previous map.</figcaption>
+      </figure>
+      <p class="my_p">
+        x10 denser grid means that there are now 62.5k bins with only a small amount of them covered by data points. This is clearly not
+        a correct approach.
+      </p>
+      <p class="my_p">
+        There is a better way, the k-means clustering algorithm. It is grouping the locations into a predefined number of bins-clusters.
+        The cluster size is correlated to point density. More dense regions have smaller clusters and less dense bigger ones.
+        Clustering performed for this project has been done only on latitude and longitude values, so it is purely geometric.
+        Despite the simplicity, it is doing a great job. Here is the clustering visualization for the whole country.
+      </p>
+      <figure class="figure">
+        <img src="/static/images/apt/clustering_country.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+        <figcaption class="figure-caption">Country map covered by 600 clusters.</figcaption>
+      </figure>
+      <p class="my_p">
+        There are no empty clusters. Each one has a different size and shape. In the areas between cities where there aren't many apartments
+        on sale, the clusters are big. They are getting smaller the closer to cities they are, and even finer in the city centers.
+        This behavior is beneficial to price estimators because apartment prices change quickly at small distances in the cities and
+        are stable in bigger areas between them. The city clusters more or less reflect the district structure, or at least they are
+        in the same size order of magnitude.
+      </p>
+      <figure class="figure">
+        <img src="/static/images/apt/clustering_warsaw.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+        <figcaption class="figure-caption">Warsaw map covered by clusters.</figcaption>
+      </figure>
+      <p class="my_p">
+        The cluster amount selection is purely arbitrary and was determined by experiment. Different values have been tested
+        and 600 seems to be a good balance between accuracy and efficiency. Below you can see how the prices per m<sup>2</sup> (represented by dot size)
+        are correlating with the clusters (represented by dot color).
+      </p>
+      <figure class="figure">
+        <img src="/static/images/apt/clustering_warsaw2.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+        <figcaption class="figure-caption">Warsaw apartment map. Clusters are represented by colors and prices per m<sup>2</sup> by dot sizes.</figcaption>
+      </figure>
+      <p class="my_p">
+        Cluster parameter is added to the data set and redundant location information (address and geolocation) is removed.
+      </p>
+      <h4 class="my_h4">ML pipeline</h4>
+      <p class="my_p">
+        The whole ML pipeline (data acquisition, data preparation and models training) is being run automatically in an Apache Airflow instance on a schedule.<br><br>
+        The last run has been finalized on  <strong>{{update_date}}</strong>.<br><br>
+        As mentioned, the app is using two models. They are quite simple, but perform very well:
+        <ul>
+          <li>
+            ANN - artificial neural network with three hidden layers, R<sup>2</sup> in the latest run is <strong>{{ann_r2}}</strong>
+          </li>
+          <li>
+            XGB - Extreme Gradient Boosting algorithm with 500 estimators, R<sup>2</sup> in the latest run is <strong>{{xgb_r2}}</strong>
+          </li>
+        </ul>
+         
+      </p>
+      
+    </div>
+
+  </div>
+
+</div>
+
+
+{% endblock %}

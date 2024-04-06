@@ -1,4 +1,3 @@
-import time
 from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -137,7 +136,7 @@ async def estimate_price(db: db_dependency, apt_est_request: AptEstymationsReque
             'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
             'currency': 'PLN'}
 
-@router.get('/api', status_code=status.HTTP_201_CREATED)
+@router.get('/api', status_code=status.HTTP_201_CREATED, include_in_schema=False)
 async def estimate_price(db: db_dependency,
                          request: Request,
                          lat: float = Query(gt=48, lt=55, default=51.757193),
@@ -228,8 +227,23 @@ async def price_estimator(db: db_dependency, request: Request,
                                        'error_message': error_message,
                                        'update_date': update_date})
 
-    time.sleep(5)
     return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,
                                        'est_model': est_model,
                                        'update_date': update_date})
+
+@router.get('/details', response_class=HTMLResponse, include_in_schema=False)
+async def price_estimator(request: Request):
+
+    update_date = get_update_date('/models/update.date')
+    update_date = datetime.strptime(update_date, '%Y-%m-%d %H:%M:%S')
+    update_date = update_date.strftime('%b %d %Y')
+
+    ann_r2 = load_from_txt('/models/ann.r2')
+    xgb_r2 = load_from_txt('/models/xgb.r2')
+
+    return templates.TemplateResponse('apartment_estimator_details.html',
+                                      {'request': request,
+                                       'update_date': update_date,
+                                       'ann_r2': ann_r2,
+                                       'xgb_r2': xgb_r2})
