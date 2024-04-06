@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+
+{% block title %}
+<title>CNN Details</title>
+{% endblock %}
+
+{% block body_block %}
+
+<div class="container">
+  <div class="row">
+    <div class="col-md-8" style='margin: 0 auto;'>
+      <h4 class="my_h4">The Classifier</h4>
+      <p class="my_p">
+        This is a convolutional neural network trained to classify images of the Rock Paper Scissors game calls.
+        It has been trained on a fairly small image data set containing 2188 RGB images.
+        Below you can find information about its creation and evaluation.
+      </p>
+      <h4 class="my_h4">Image preparation</h4>
+      <p class="my_p">
+        To maximize the performance of the network, the train/test images were preprocessed to retain only useful information.
+        This was a three-step process:
+        <ul>
+          <li>resizing to 90x60 pixels - this will reduce the training time, which is exponentially dependent on the image size</li>
+          <li>clustering - each pixel of each image has been assigned to one of two clusters based on its placement in the RGB space;
+          color information for each pixel has been replaced by its respected cluster centroid color information</li>
+          <li>edge recognition - application of edge recognition filter</li>
+        </ul>
+        Here are some example transformations:
+      </p>
+      <img src="/static/images/rps/image_transformation_1.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+      <img src="/static/images/rps/image_transformation_2.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+      <img src="/static/images/rps/image_transformation_3.png" class='figure-img img-fluid rounded' alt="***missing_image***">
+      <p class="my_p">
+        The resulting images show only the outline of the gesture which is really what it takes to classify them.
+      </p>
+      <h4 class="my_h4">Convolutional neural network classifier</h4>
+      <p class="my_p">
+        The model is composed of the following layers:
+      </p>
+      <dl class="row">
+        <dt class="col-sm-3">1<sup>st</sup> convolution</dt>
+        <dd class="col-sm-9">128 filters with size 3x3, ReLU activation</dd>
+        <dt class="col-sm-3">1<sup>st</sup> pooling</dt>
+        <dd class="col-sm-9">size 2x2</dd>
+        <dt class="col-sm-3">2<sup>nd</sup> convolution</dt>
+        <dd class="col-sm-9">64 filters with size 3x3, ReLU activation</dd>
+        <dt class="col-sm-3">2<sup>nd</sup> pooling</dt>
+        <dd class="col-sm-9">size 2x2</dd>
+        <dt class="col-sm-3">3<sup>rd</sup> convolution</dt>
+        <dd class="col-sm-9">64 filters with size 3x3, ReLU activation</dd>
+        <dt class="col-sm-3">3<sup>rd</sup> pooling</dt>
+        <dd class="col-sm-9">size 2x2</dd>
+        <dt class="col-sm-3">4<sup>th</sup> convolution</dt>
+        <dd class="col-sm-9">32 filters with size 3x3, ReLU activation</dd>
+        <dt class="col-sm-3">4<sup>th</sup> pooling</dt>
+        <dd class="col-sm-9">size 2x2</dd>
+        <dt class="col-sm-3">Flatten</dt>
+        <dd class="col-sm-9">&nbsp;</dd>
+        <dt class="col-sm-3">Dense layer</dt>
+        <dd class="col-sm-9">128 units, ReLU activation</dd>
+        <dt class="col-sm-3">Dropout</dt>
+        <dd class="col-sm-9">50%</dd>
+        <dt class="col-sm-3">Output layer</dt>
+        <dd class="col-sm-9">3 units, softmax activation</dd>
+      </dl>
+      <p class='my_p'>
+        To reduce overfitting, an image generator has been used. It applied small random transformations to train images:
+        rotation, shift, shear and zoom. With early stopping applied, it took 15 epochs to train the model.
+      </p>
+      <h4 class="my_h4">Model evaluation</h4>
+      <p class='my_p'>
+        Here are the classification results for images from outside of the train/test set:
+      </p>
+      <figure class="figure">
+        <img src="/static/images/rps/predicting_clustered_edges_images.jpg" class='figure-img img-fluid rounded' alt="***missing_image***">
+      </figure>
+      <p class='my_p'>
+        In some cases, the model is struggling to make a correct classification. This is caused by image preprocessing issues.
+        When the input picture has a not uniform background or the background has the same color tone as the hand, the edges of the gesture
+        are not correctly recognized.
+      </p>
+      <h4 class="my_h4">How to improve the user experience of the app</h4>
+      <p class='my_p'>
+        To improve classification results, the following advice should be taken into account:
+        <ul>
+          <li>use your right hand to take a landscape picture of your left hand; this ensures correct hand orientation</li>
+          <li>take the picture on a uniform, contrasting background (preferably black or white)</li>
+          <li>try to avoid capturing shadows</li>
+        </ul>
+      </p>
+      <h4 class="my_h4">Data set for training</h4>
+      <p class='my_p'>
+        CNN model has been trained on a
+        <a href="https://www.kaggle.com/drgfreeman/rockpaperscissors">dataset available on Kaggle</a>
+        under license:
+        <a href="https://creativecommons.org/licenses/by-sa/4.0/">CC BY-SA 4.0</a>
+      </p>
+      <br>
+    </div>
+
+  </div>
+
+</div>
+
+
+{% endblock %}
