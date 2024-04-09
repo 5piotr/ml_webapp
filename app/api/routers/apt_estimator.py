@@ -233,7 +233,7 @@ async def price_estimator(db: db_dependency, request: Request,
                                        'update_date': update_date})
 
 @router.get('/details', response_class=HTMLResponse, include_in_schema=False)
-async def price_estimator(request: Request):
+async def price_estimator_details(request: Request):
 
     update_date = get_update_date('/models/update.date')
     update_date = datetime.strptime(update_date, '%Y-%m-%d %H:%M:%S')
