@@ -1,26 +1,19 @@
-// file size validation, path writing, spinner
-$('#formFile').on('change', function() {
+// file size validation
+$('#form').on('change', function() {
+  var fileSize = $('#formFile')[0].files[0].size; // File size in bytes
+  var maxSize = 4 * 1024 * 1024; // 4MB in bytes
 
-    const size =
-       (this.files[0].size / 1024 / 1024).toFixed(2);
-
-    if (size > 4) {
-        alert("File must be smaller than 4 MB");
-        $(this).val('');
-    } else {
-      //get the file name
-      var fileName = $(this).val().replace('C:\\fakepath\\', " ");
-      //replace the "Choose a file" label
-      $(this).next('.custom-file-label').html(fileName);
-      // spinner
-      $(".btn").click(function() {
-        // disable button
-        // $(this).prop("disabled", true);
-        // add spinner to button
-        $('#spinner').html(
-          '<button class="btn btn-success" type="button" disabled><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span role="status"> Loading...</span></button>'
-        );
-      });
-    }
+  if (fileSize > maxSize) {
+    alert('File size exceeds the maximum limit of 4MB.');
+    return false; // Prevent form submission
+  }
 });
 
+// spinner
+$(document).ready(function() {
+  $('#form').submit(function() {
+    // Replace submit button with loading spinner
+    var $submitButton = $(this).find('button[type="submit"]');
+    $submitButton.replaceWith('<button class="btn btn-success" type="button" disabled><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span role="status"> Loading...</span></button>');
+  });
+});

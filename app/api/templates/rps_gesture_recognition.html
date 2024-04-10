@@ -13,12 +13,12 @@ to classify images of the Rock Paper Scissors game calls.">
 <div class="container">
   <div class="row">
     <div class="col-md-6" style='margin: 3rem auto;'>
-      <h4>Rock Paper Scissors game call gesture recognition</h4>
+      <h4>Rock Paper Scissors gesture recognition</h4>
       <br>
       <form id="form" method="post" enctype="multipart/form-data">
         <div class="form-group">
           <div class="custom-file">
-            <label for="formFile" class="form-label">Please upload a picture of a hand gesture game call:</label>
+            <label for="formFile" class="form-label">Please upload a picture of the rock paper scissors game gesture:</label>
             <input class="form-control" type="file" id="formFile" name='picture' accept=".jpg,.png" required>
           </div>
           <small class="form-text text-muted">
@@ -77,4 +77,5 @@ to classify images of the Rock Paper Scissors game calls.">
 
 {% block script_block %}
 <script src="/static/js/rps_gesture_recognition.js"></script>
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 {% endblock %}
