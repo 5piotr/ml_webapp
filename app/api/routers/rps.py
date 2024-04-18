@@ -35,7 +35,7 @@ def cluster_resize_image(img):
 def convert_image(img_k):
     img_e = img_k.convert('L')
     img_e = img_e.filter(ImageFilter.FIND_EDGES)
-    return img_e.crop((1,1,IMG_SIZE[0]-1,IMG_SIZE[1]-1))
+    return img_e.crop((1, 1, IMG_SIZE[0]-1, IMG_SIZE[1]-1))
 
 def get_prediction(img_e):
     pred_dict = {0:'paper', 1:'rock', 2:'scissors'}

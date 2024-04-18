@@ -34,3 +34,8 @@ volumes:
   models:
     external: true
     name: ml_pipeline_mgr_models
+
+networks:
+  default:
+    external: true
+    name: npm_net
