@@ -1,9 +1,14 @@
 import io
 import numpy as np
 
-from fastapi import APIRouter, Request, UploadFile, Form
+from typing import Annotated
+from fastapi import APIRouter, Request, UploadFile, Form, Depends
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
+from sqlalchemy.orm import Session
+from api.models import RpsUsage
+from api.database import SessionLocal
+from .lib import get_current_timestamp
 
 import tensorflow as tf
 from PIL import Image, ImageFilter
@@ -17,6 +22,15 @@ router = APIRouter(
 )
 
 templates = Jinja2Templates(directory='api/templates')
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+db_dependency = Annotated[Session, Depends(get_db)]
 
 IMG_SIZE = (92,70)
 
@@ -64,7 +78,8 @@ async def rps_estimator(request: Request):
                                       {'request': request})
 
 @router.post('/', response_class=HTMLResponse, include_in_schema=False)
-async def rps_estimator(request: Request, picture: UploadFile = Form()):
+async def rps_estimator(request: Request, db: db_dependency,
+                        picture: UploadFile = Form()):
     
     try:
         contents = await picture.read()
@@ -77,6 +92,12 @@ async def rps_estimator(request: Request, picture: UploadFile = Form()):
         label = get_prediction(img_e)
 
         plots = generate_div_plots(img_r, img_k, img_e)
+
+        rps_model = RpsUsage(date=get_current_timestamp(),
+                            ip_address=request.client.host)
+
+        db.add(rps_model)
+        db.commit()
 
     except:
         error_message = 'Something went wrong :('

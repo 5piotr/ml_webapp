@@ -6,9 +6,9 @@ from fastapi import APIRouter, Depends, Query, Request, Form
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from starlette import status
-from starlette.responses import RedirectResponse
 from api.models import AptEstymations
 from api.database import SessionLocal
+from .lib import get_current_timestamp
 
 import pytz
 import pickle
@@ -57,11 +57,6 @@ class AptEstymationsRequest(BaseModel):
             ]
         }
     }    
-
-def get_current_timestamp():
-    warsaw_tz = pytz.timezone('Europe/Warsaw') 
-    timestamp = datetime.now(warsaw_tz).strftime('%Y-%m-%d_%H:%M:%S')
-    return timestamp
 
 def load_from_pkl(absolute_path):
     with open(absolute_path, 'rb') as file:

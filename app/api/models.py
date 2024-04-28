@@ -20,3 +20,10 @@ class AptEstymations(Base):
     xgb_price_m2 = Column(Integer)
     source = Column(String(3))
     ip_address = Column(String(39))
+
+class RpsUsage(Base):
+    __tablename__ = 'rps_usage'
+
+    id = Column(Integer, primary_key=True, index=True)
+    date = Column(DateTime)
+    ip_address = Column(String(39))
