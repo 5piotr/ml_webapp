@@ -216,7 +216,7 @@ async def price_estimator(db: db_dependency, request: Request,
         db.commit()
 
     except:
-        error_message = 'Something went wrong :('
+        error_message = ':( Something went wrong, please try again'
         return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,
                                        'error_message': error_message,

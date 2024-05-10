@@ -100,7 +100,7 @@ async def rps_estimator(request: Request, db: db_dependency,
         db.commit()
 
     except:
-        error_message = 'Something went wrong :('
+        error_message = ':( Something went wrong, please try again'
         return templates.TemplateResponse('rps_gesture_recognition.html',
                                       {'request': request,
                                        'error_message': error_message})
