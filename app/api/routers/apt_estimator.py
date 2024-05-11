@@ -10,10 +10,11 @@ from api.models import AptEstymations
 from api.database import SessionLocal
 from .lib import get_current_timestamp
 
-import pytz
 import pickle
 import tensorflow as tf
 from xgboost import XGBRegressor
+
+import logging
 
 router = APIRouter(
     prefix='/apartment_price_estimator',
@@ -89,7 +90,7 @@ def get_xgb_price(pred_frame):
     return round(xgb_price), round(xgb_price_m2)
 
 def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
-   
+    
     cluster = get_cluster(lat, lng)
     pred_frame = load_from_pkl('/models/pred_frame.pkl')
 
@@ -114,18 +115,21 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
 @router.post('/api', status_code=status.HTTP_201_CREATED)
 async def estimate_price(db: db_dependency, apt_est_request: AptEstymationsRequest,
                          request: Request):
+    
+    try:
+        ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+            get_apt_prices(**apt_est_request.model_dump())
 
-    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
-        get_apt_prices(**apt_est_request.model_dump())
+        est_model = AptEstymations(date=get_current_timestamp(),
+                                ann_price=ann_price, ann_price_m2=ann_price_m2,
+                                xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                                source='api', ip_address=request.client.host,
+                                **apt_est_request.model_dump())
 
-    est_model = AptEstymations(date=get_current_timestamp(),
-                               ann_price=ann_price, ann_price_m2=ann_price_m2,
-                               xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
-                               source='api', ip_address=request.client.host,
-                               **apt_est_request.model_dump())
-
-    db.add(est_model)
-    db.commit()
+        db.add(est_model)
+        db.commit()
+    except:
+        logging.exception('Exception occurred in %s api', __name__)
 
     return {'ann_price': ann_price, 'ann_price_m': ann_price_m2,
             'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
@@ -216,6 +220,7 @@ async def price_estimator(db: db_dependency, request: Request,
         db.commit()
 
     except:
+        logging.exception('Exception occurred in %s', __name__)
         error_message = ':( Something went wrong, please try again'
         return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,

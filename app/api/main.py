@@ -6,6 +6,10 @@ from api.models import Base
 from api.database import engine
 from api.routers import rps, apt_estimator
 
+import logging
+logging.basicConfig(filename='app.log', filemode='a',
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
 app = FastAPI(
     title="MLApps",
     version="1.0",

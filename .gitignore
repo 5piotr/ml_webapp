@@ -5,3 +5,5 @@
 db_test.sql
 
 api_test.py
+
+app.log

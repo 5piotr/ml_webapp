@@ -16,6 +16,8 @@ from sklearn.cluster import KMeans
 from plotly.offline import plot
 import plotly.express as px
 
+import logging
+
 router = APIRouter(
     prefix='/rps_gesture_recognition',
     tags=['rps gesture recognition']
@@ -100,6 +102,7 @@ async def rps_estimator(request: Request, db: db_dependency,
         db.commit()
 
     except:
+        logging.exception('Exception occurred in %s', __name__)
         error_message = ':( Something went wrong, please try again'
         return templates.TemplateResponse('rps_gesture_recognition.html',
                                       {'request': request,
