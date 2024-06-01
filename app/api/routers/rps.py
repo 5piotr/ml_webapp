@@ -83,30 +83,27 @@ async def rps_estimator(request: Request):
 async def rps_estimator(request: Request, db: db_dependency,
                         picture: UploadFile = Form()):
     
-    try:
-        contents = await picture.read()
-        img = Image.open(io.BytesIO(contents))
-        
-        img_r, img_k = cluster_resize_image(img)
-        
-        img_e = convert_image(img_k)
+    contents = await picture.read()
+    img = Image.open(io.BytesIO(contents))
+    
+    img_r, img_k = cluster_resize_image(img)
+    
+    img_e = convert_image(img_k)
 
-        label = get_prediction(img_e)
+    label = get_prediction(img_e)
 
-        plots = generate_div_plots(img_r, img_k, img_e)
+    plots = generate_div_plots(img_r, img_k, img_e)
 
-        rps_model = RpsUsage(date=get_current_timestamp(),
-                            ip_address=request.client.host)
+    rps_model = RpsUsage(date=get_current_timestamp(),
+                        ip_address=request.client.host)
 
-        db.add(rps_model)
-        db.commit()
-
-    except:
-        logging.exception('Exception occurred in %s', __name__)
-        error_message = ':( Something went wrong, please try again'
-        return templates.TemplateResponse('rps_gesture_recognition.html',
-                                      {'request': request,
-                                       'error_message': error_message})
+    for _ in range(3):
+        try:
+            db.add(rps_model)
+            db.commit()
+            break
+        except:
+            logging.exception('Exception occurred in %s', __name__)
 
     return templates.TemplateResponse('rps_gesture_recognition.html',
                                       {'request': request,

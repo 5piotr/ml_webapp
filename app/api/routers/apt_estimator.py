@@ -116,20 +116,22 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
 async def estimate_price(db: db_dependency, apt_est_request: AptEstymationsRequest,
                          request: Request):
     
-    try:
-        ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
-            get_apt_prices(**apt_est_request.model_dump())
+    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+        get_apt_prices(**apt_est_request.model_dump())
 
-        est_model = AptEstymations(date=get_current_timestamp(),
-                                ann_price=ann_price, ann_price_m2=ann_price_m2,
-                                xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
-                                source='api', ip_address=request.client.host,
-                                **apt_est_request.model_dump())
+    est_model = AptEstymations(date=get_current_timestamp(),
+                            ann_price=ann_price, ann_price_m2=ann_price_m2,
+                            xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                            source='api', ip_address=request.client.host,
+                            **apt_est_request.model_dump())
 
-        db.add(est_model)
-        db.commit()
-    except:
-        logging.exception('Exception occurred in %s api', __name__)
+    for _ in range(3):
+        try:
+            db.add(est_model)
+            db.commit()
+            break
+        except:
+            logging.exception('Exception occurred in %s api', __name__)
 
     return {'ann_price': ann_price, 'ann_price_m': ann_price_m2,
             'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
@@ -204,28 +206,24 @@ async def price_estimator(db: db_dependency, request: Request,
                                        'error_message': error_message,
                                        'update_date': update_date})
     
-    try:
-        ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
-            get_apt_prices(lat, lng, market, build, area, rooms, floor, floors)
+    ann_price, ann_price_m2, xgb_price, xgb_price_m2 = \
+        get_apt_prices(lat, lng, market, build, area, rooms, floor, floors)
 
-        est_model = AptEstymations(date=get_current_timestamp(),
-                                lat=lat, lng=lng, market=market,
-                                build_year=build, area=area, rooms=rooms,
-                                floor=floor, floors=floors,
-                                ann_price=ann_price, ann_price_m2=ann_price_m2,
-                                xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
-                                source='www', ip_address=request.client.host)
+    est_model = AptEstymations(date=get_current_timestamp(),
+                            lat=lat, lng=lng, market=market,
+                            build_year=build, area=area, rooms=rooms,
+                            floor=floor, floors=floors,
+                            ann_price=ann_price, ann_price_m2=ann_price_m2,
+                            xgb_price=xgb_price, xgb_price_m2=xgb_price_m2,
+                            source='www', ip_address=request.client.host)
 
-        db.add(est_model)
-        db.commit()
-
-    except:
-        logging.exception('Exception occurred in %s', __name__)
-        error_message = ':( Something went wrong, please try again'
-        return templates.TemplateResponse('apartment_price_estimator.html',
-                                      {'request': request,
-                                       'error_message': error_message,
-                                       'update_date': update_date})
+    for _ in range(3):
+        try:
+            db.add(est_model)
+            db.commit()
+            break
+        except:
+            logging.exception('Exception occurred in %s', __name__)
 
     return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,
