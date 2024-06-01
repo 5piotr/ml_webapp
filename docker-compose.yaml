@@ -10,7 +10,7 @@ services:
     ports:
       - 8000:8000
     environment:
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD_2}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     tty: true
     restart: always
     depends_on:
@@ -23,8 +23,8 @@ services:
     environment:
       MYSQL_DATABASE: apt_db
       MYSQL_USER: piotr
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD_2}
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD_2}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - 3307:3306
     volumes:
