@@ -104,6 +104,7 @@ async def rps_estimator(request: Request, db: db_dependency,
             break
         except:
             logging.exception('Exception occurred in %s', __name__)
+            db.rollback()
 
     return templates.TemplateResponse('rps_gesture_recognition.html',
                                       {'request': request,

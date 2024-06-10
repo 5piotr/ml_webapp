@@ -132,6 +132,7 @@ async def estimate_price(db: db_dependency, apt_est_request: AptEstymationsReque
             break
         except:
             logging.exception('Exception occurred in %s api', __name__)
+            db.rollback()
 
     return {'ann_price': ann_price, 'ann_price_m': ann_price_m2,
             'xgb_price': xgb_price, 'xgb_price_m': xgb_price_m2,
@@ -224,6 +225,7 @@ async def price_estimator(db: db_dependency, request: Request,
             break
         except:
             logging.exception('Exception occurred in %s', __name__)
+            db.rollback()
 
     return templates.TemplateResponse('apartment_price_estimator.html',
                                       {'request': request,
