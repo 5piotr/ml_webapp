@@ -102,7 +102,7 @@ def get_apt_prices(lat, lng, market, build_year, area, rooms, floor, floors):
         pred_frame['rooms_' + str(rooms)] = 1
     if floor != 0:
         pred_frame['floor_' + str(floor)] = 1
-    if floors != 0:
+    if floors != 1:
         pred_frame['floors_' + str(floors)] = 1
     if cluster != 0:
         pred_frame['cluster_' + str(cluster)] = 1
